@@ -1,0 +1,3 @@
+- https://github.com/defunkt/gist
+- https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+- https://remarkablemark.org/blog/2016/06/16/how-to-add-image-to-gist/
