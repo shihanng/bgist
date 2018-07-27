@@ -20,17 +20,19 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
-var accessToken = os.Getenv("GITHUB_ACCESS_TOKEN")
+var (
+	accessToken = os.Getenv("BGIST_GITHUB_ACCESS_TOKEN")
 
-var public bool
-var description string
+	public      bool
+	description string
 
-var dummyFilename github.GistFilename = "dummy.go"
-var dummyContent = "package dummy"
+	dummyFilename github.GistFilename = "dummy.go"
+	dummyContent                      = "package dummy"
+)
 
 func init() {
 	if accessToken == "" {
-		die("GITHUB_ACCESS_TOKEN is empty")
+		die("BGIST_GITHUB_ACCESS_TOKEN is empty")
 	}
 
 	flag.BoolVar(&public, "public", false, "publish as public gist")
@@ -109,7 +111,7 @@ func createGist(description string, public bool) (*github.User, string, error) {
 	ctx := context.Background()
 
 	auth := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_ACCESS_TOKEN")},
+		&oauth2.Token{AccessToken: accessToken},
 	))
 
 	client := github.NewClient(auth)
