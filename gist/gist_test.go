@@ -73,3 +73,5 @@ func TestClient(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(expected, actual)
 }
+
+func TestGit(t *testing.T) {}

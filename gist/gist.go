@@ -7,6 +7,11 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
+	billy "gopkg.in/src-d/go-billy.v4"
+	"gopkg.in/src-d/go-billy.v4/memfs"
+	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/storage"
+	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 var (
@@ -101,4 +106,26 @@ func File(gf *github.GistFile) Option {
 
 func (c *Client) ModifyGistRepo(url string) error {
 	return nil
+}
+
+type repoer interface {
+	Worktree() (*git.Worktree, error)
+	Push(*git.PushOptions) error
+}
+
+type Git struct {
+	filesystem billy.Filesystem
+	storage    *memory.Storage
+
+	CloneFn func(storage.Storer, billy.Filesystem, *git.CloneOptions) (repoer, error)
+}
+
+func NewGit(info Info, accessToken string) *Git {
+	return &Git{
+		filesystem: memfs.New(),
+		storage:    memory.NewStorage(),
+		CloneFn: func(s storage.Storer, worktree billy.Filesystem, o *git.CloneOptions) (repoer, error) {
+			return git.Clone(s, worktree, o)
+		},
+	}
 }
