@@ -20,7 +20,7 @@
 
 package main
 
-import "github.com/shihanng/bgist/cmd/cmd"
+import "github.com/shihanng/bgist/cmd"
 
 func main() {
 	cmd.Execute()
