@@ -30,9 +30,9 @@ import (
 
 	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
+	"github.com/shihanng/bgist/gist"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/oauth2"
 	billy "gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/memfs"
 	git "gopkg.in/src-d/go-git.v4"
@@ -46,8 +46,8 @@ var (
 	description string
 	accessToken string
 
-	dummyFilename github.GistFilename = "dummy.go"
-	dummyContent                      = "package dummy"
+	dummyFilename = "dummy.go"
+	dummyContent  = "package dummy"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -65,7 +65,15 @@ to quickly create a Cobra application.`,
 }
 
 func actual(cmd *cobra.Command, args []string) error {
-	user, gitPullURL, err := createGist(description, public)
+	ctx := context.Background()
+
+	client := gist.NewClient(ctx, accessToken)
+
+	info, err := client.CreateGist(ctx,
+		gist.Description(description),
+		gist.Public(public),
+		gist.File(&github.GistFile{Filename: &dummyFilename, Content: &dummyContent}),
+	)
 	if err != nil {
 		return err
 	}
@@ -74,7 +82,7 @@ func actual(cmd *cobra.Command, args []string) error {
 	storer := memory.NewStorage()
 
 	r, err := git.Clone(storer, fs, &git.CloneOptions{
-		URL: gitPullURL,
+		URL: info.GitURL,
 	})
 	if err != nil {
 		return errors.Wrap(err, "clone gist to memory")
@@ -103,8 +111,8 @@ func actual(cmd *cobra.Command, args []string) error {
 
 	_, err = w.Commit("", &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  user.GetName(),
-			Email: user.GetEmail(),
+			Name:  info.Name,
+			Email: info.Email,
 			When:  time.Now(),
 		},
 	})
@@ -112,7 +120,7 @@ func actual(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "git commit")
 	}
 
-	auth := &http.BasicAuth{Username: user.GetLogin(), Password: accessToken}
+	auth := &http.BasicAuth{Username: info.ID, Password: accessToken}
 
 	if err := r.Push(&git.PushOptions{Auth: auth}); err != nil {
 		return errors.Wrap(err, "git push")
@@ -146,34 +154,6 @@ func init() {
 		fmt.Println(`It can be obtained from https://github.com/settings/tokens. The require scope is "gist".`)
 		os.Exit(1)
 	}
-}
-
-func createGist(description string, public bool) (*github.User, string, error) {
-	ctx := context.Background()
-
-	auth := oauth2.NewClient(ctx, oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: accessToken},
-	))
-
-	client := github.NewClient(auth)
-
-	g := github.Gist{
-		Description: &description,
-		Public:      &public,
-		Files: map[github.GistFilename]github.GistFile{
-			dummyFilename: github.GistFile{
-				Content: &dummyContent,
-			},
-		},
-	}
-
-	gists, _, err := client.Gists.Create(ctx, &g)
-	if err != nil {
-		return nil, "", errors.Wrap(err, "create new gist")
-	}
-	fmt.Println("created:", gists.GetHTMLURL())
-
-	return gists.GetOwner(), gists.GetGitPullURL(), nil
 }
 
 func addFile(source string, destination billy.Filesystem) (string, error) {
