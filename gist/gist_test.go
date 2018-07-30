@@ -9,6 +9,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testInfo = Info{
+	ID:      "johndoe",
+	Name:    "John Doe",
+	Email:   "jdoe@example.com",
+	HTMLURL: "https://gist.github.com/johndoe/abc123",
+	GitURL:  "git@gist.github.com:abc123.git",
+}
+
 func newString(v string) *string {
 	return &v
 }
@@ -37,14 +45,6 @@ func TestClient(t *testing.T) {
 		Content:  newString("test"),
 	}
 
-	expected := Info{
-		ID:      "johndoe",
-		Name:    "John Doe",
-		Email:   "jdoe@example.com",
-		HTMLURL: "https://gist.github.com/johndoe/abc123",
-		GitURL:  "git@gist.github.com:abc123.git",
-	}
-
 	mockGister.EXPECT().Create(ctx, &github.Gist{
 		Description: &testDescription,
 		Public:      newBool(true),
@@ -54,12 +54,12 @@ func TestClient(t *testing.T) {
 		},
 	}).Return(&github.Gist{
 		Owner: &github.User{
-			Login: &expected.ID,
-			Name:  &expected.Name,
-			Email: &expected.Email,
+			Login: &testInfo.ID,
+			Name:  &testInfo.Name,
+			Email: &testInfo.Email,
 		},
-		HTMLURL:    &expected.HTMLURL,
-		GitPullURL: &expected.GitURL,
+		HTMLURL:    &testInfo.HTMLURL,
+		GitPullURL: &testInfo.GitURL,
 	}, nil, nil)
 
 	actual, err := c.CreateGist(ctx,
@@ -71,7 +71,5 @@ func TestClient(t *testing.T) {
 
 	assert := assert.New(t)
 	assert.NoError(err)
-	assert.Equal(expected, actual)
+	assert.Equal(testInfo, actual)
 }
-
-func TestGit(t *testing.T) {}

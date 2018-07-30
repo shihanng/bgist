@@ -8,6 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	github "github.com/google/go-github/github"
+	go_git_v4 "gopkg.in/src-d/go-git.v4"
 	reflect "reflect"
 )
 
@@ -46,4 +47,52 @@ func (m *MockGister) Create(arg0 context.Context, arg1 *github.Gist) (*github.Gi
 // Create indicates an expected call of Create
 func (mr *MockGisterMockRecorder) Create(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockGister)(nil).Create), arg0, arg1)
+}
+
+// Mockrepoer is a mock of repoer interface
+type Mockrepoer struct {
+	ctrl     *gomock.Controller
+	recorder *MockrepoerMockRecorder
+}
+
+// MockrepoerMockRecorder is the mock recorder for Mockrepoer
+type MockrepoerMockRecorder struct {
+	mock *Mockrepoer
+}
+
+// NewMockrepoer creates a new mock instance
+func NewMockrepoer(ctrl *gomock.Controller) *Mockrepoer {
+	mock := &Mockrepoer{ctrl: ctrl}
+	mock.recorder = &MockrepoerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *Mockrepoer) EXPECT() *MockrepoerMockRecorder {
+	return m.recorder
+}
+
+// Worktree mocks base method
+func (m *Mockrepoer) Worktree() (*go_git_v4.Worktree, error) {
+	ret := m.ctrl.Call(m, "Worktree")
+	ret0, _ := ret[0].(*go_git_v4.Worktree)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Worktree indicates an expected call of Worktree
+func (mr *MockrepoerMockRecorder) Worktree() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Worktree", reflect.TypeOf((*Mockrepoer)(nil).Worktree))
+}
+
+// Push mocks base method
+func (m *Mockrepoer) Push(arg0 *go_git_v4.PushOptions) error {
+	ret := m.ctrl.Call(m, "Push", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Push indicates an expected call of Push
+func (mr *MockrepoerMockRecorder) Push(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*Mockrepoer)(nil).Push), arg0)
 }
