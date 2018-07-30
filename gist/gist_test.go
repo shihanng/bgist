@@ -17,14 +17,6 @@ var testInfo = Info{
 	GitURL:  "git@gist.github.com:abc123.git",
 }
 
-func newString(v string) *string {
-	return &v
-}
-
-func newBool(v bool) *bool {
-	return &v
-}
-
 func TestClient(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -41,13 +33,13 @@ func TestClient(t *testing.T) {
 		Content:  &tmpContent,
 	}
 	testGistFile2 := github.GistFile{
-		Filename: newString("test.txt"),
-		Content:  newString("test"),
+		Filename: github.String("test.txt"),
+		Content:  github.String("test"),
 	}
 
 	mockGister.EXPECT().Create(ctx, &github.Gist{
 		Description: &testDescription,
-		Public:      newBool(true),
+		Public:      github.Bool(true),
 		Files: map[github.GistFilename]github.GistFile{
 			github.GistFilename(*testGistFile1.Filename): testGistFile1,
 			github.GistFilename(*testGistFile2.Filename): testGistFile2,

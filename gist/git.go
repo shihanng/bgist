@@ -16,10 +16,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
-func (c *Client) ModifyGistRepo(url string) error {
-	return nil
-}
-
 var cloneFn = func(s storage.Storer, f billy.Filesystem, o *git.CloneOptions) (repoer, error) {
 	return git.Clone(s, f, o)
 }

@@ -22,11 +22,9 @@ func TestGit(t *testing.T) {
 
 	r, err := git.Init(s, f)
 	require.NoError(t, err)
-	_ = r
 
 	w, err := r.Worktree()
 	require.NoError(t, err)
-	_ = w
 
 	g := Git{
 		info:        testInfo,
