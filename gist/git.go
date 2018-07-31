@@ -1,3 +1,4 @@
+//go:generate mockgen -source=git.go -destination=mock_git_test.go -package=gist
 package gist
 
 import (
@@ -36,6 +37,7 @@ var cloneFn = func(s storage.Storer, f billy.Filesystem, gitURL string) (
 
 type repoer interface {
 	Worktree() (*git.Worktree, error)
+	Log(*git.LogOptions) (object.CommitIter, error)
 	Push(*git.PushOptions) error
 }
 

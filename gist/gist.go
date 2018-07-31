@@ -1,4 +1,4 @@
-//go:generate mockgen -source=gist.go -destination=mock_test.go -package=gist
+//go:generate mockgen -source=gist.go -destination=mock_gist_test.go -package=gist
 package gist
 
 import (
@@ -14,14 +14,13 @@ var (
 	tmpContent  = "package dummy"
 )
 
-// Gister is used to create gist on GitHub.
-type Gister interface {
+type gister interface {
 	Create(context.Context, *github.Gist) (*github.Gist, *github.Response, error)
 }
 
 // Client should be created with NewClient.
 type Client struct {
-	gist Gister
+	gist gister
 }
 
 // NewClient created the client to create gist on GitHub.

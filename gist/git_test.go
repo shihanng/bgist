@@ -4,12 +4,13 @@ import (
 	"testing"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/src-d/go-billy.v4/memfs"
+	billy "gopkg.in/src-d/go-billy.v4"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
+	"gopkg.in/src-d/go-git.v4/storage"
 )
 
 func TestGit(t *testing.T) {
@@ -17,25 +18,27 @@ func TestGit(t *testing.T) {
 	defer mockCtrl.Finish()
 	mockRepoer := NewMockrepoer(mockCtrl)
 
-	f := memfs.New()
-	s := memory.NewStorage()
+	var repo *git.Repository
 
-	r, err := git.Init(s, f)
-	require.NoError(t, err)
+	cloneFn = func(s storage.Storer, f billy.Filesystem, gitURL string) (
+		repoer, *git.Worktree, error) {
 
-	w, err := r.Worktree()
-	require.NoError(t, err)
+		var err error
+		repo, err = git.Init(s, f)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "when initing a repo")
+		}
 
-	g := Git{
-		info:        testInfo,
-		accessToken: "secret",
+		w, err := repo.Worktree()
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "when creating worktree")
+		}
 
-		filesystem: f,
-		storage:    s,
-
-		repo:     mockRepoer,
-		worktree: w,
+		return mockRepoer, w, nil
 	}
+
+	g, err := NewGit(testInfo, "secret")
+	assert.NoError(t, err)
 
 	assert.NoError(t, g.Add("./testdata/test_1.txt"))
 	assert.NoError(t, g.Add("./testdata/test_2.txt"))
@@ -44,7 +47,7 @@ func TestGit(t *testing.T) {
 	assert.NoError(t, g.Commit("removing test_1.txt"))
 
 	// Check if the changes are actually committed.
-	cIter, err := r.Log(&git.LogOptions{})
+	cIter, err := repo.Log(&git.LogOptions{})
 	require.NoError(t, err)
 	defer cIter.Close()
 
