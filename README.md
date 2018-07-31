@@ -5,7 +5,7 @@ Based on the idea in https://remarkablemark.org/blog/2016/06/16/how-to-add-image
 ## Installation
 
 ```
-$ go get https://github.com/shihanng/bgist
+$ go get github.com/shihanng/bgist
 ```
 
 ## Usage
