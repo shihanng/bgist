@@ -22,23 +22,14 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/google/go-github/github"
-	"github.com/pkg/errors"
 	"github.com/shihanng/bgist/gist"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	billy "gopkg.in/src-d/go-billy.v4"
-	"gopkg.in/src-d/go-billy.v4/memfs"
-	git "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
 var (
@@ -52,19 +43,26 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "bgist",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Use:     "bgist",
+	Example: "BGIST_GITHUB_ACCESS_TOKEN=secret bgist -d \"a demo\" photo-1.png photo-2.jpg",
+	Short:   "A tool to upload image/binary file to gist.github.com.",
+	Long: `A tool to upload image/binary file to gist.github.com.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+GitHub's personal access token should be provided as BGIST_GITHUB_ACCESS_TOKEN
+for this tool to work.
+
+https://github.com/shihanng/bgist`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: actual,
 }
 
 func actual(cmd *cobra.Command, args []string) error {
+	if accessToken == "" {
+		fmt.Println(`GitHub's personal access token is needed as environment variable BGIST_GITHUB_ACCESS_TOKEN.`)
+		fmt.Println(`It can be obtained from https://github.com/settings/tokens. The require scope is "gist".`)
+		return errors.New("BGIST_GITHUB_ACCESS_TOKEN is empty")
+	}
+
 	ctx := context.Background()
 
 	client := gist.NewClient(ctx, accessToken)
@@ -77,53 +75,29 @@ func actual(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Created", info.HTMLURL)
 
-	fs := memfs.New()
-	storer := memory.NewStorage()
-
-	r, err := git.Clone(storer, fs, &git.CloneOptions{
-		URL: info.GitURL,
-	})
+	g, err := gist.NewGit(info, accessToken)
 	if err != nil {
-		return errors.Wrap(err, "clone gist to memory")
-	}
-
-	w, err := r.Worktree()
-	if err != nil {
-		return errors.Wrap(err, "getting the worktree")
+		return err
 	}
 
 	for _, f := range args {
-		filename, err := addFile(f, fs)
-		if err != nil {
+		if err := g.Add(f); err != nil {
 			return err
 		}
-
-		_, err = w.Add(filename)
-		if err != nil {
-			return errors.Wrap(err, "git add new filename")
-		}
 	}
 
-	if _, err := w.Remove(string(dummyFilename)); err != nil {
-		return errors.Wrap(err, "git rm")
+	if err := g.Remove(dummyFilename); err != nil {
+		return err
 	}
 
-	_, err = w.Commit("", &git.CommitOptions{
-		Author: &object.Signature{
-			Name:  info.Name,
-			Email: info.Email,
-			When:  time.Now(),
-		},
-	})
-	if err != nil {
-		return errors.Wrap(err, "git commit")
+	if err := g.Commit("update"); err != nil {
+		return err
 	}
 
-	auth := &http.BasicAuth{Username: info.ID, Password: accessToken}
-
-	if err := r.Push(&git.PushOptions{Auth: auth}); err != nil {
-		return errors.Wrap(err, "git push")
+	if err := g.Push(); err != nil {
+		return err
 	}
 
 	return nil
@@ -149,32 +123,4 @@ func init() {
 	}
 
 	accessToken = viper.GetString("github_access_token")
-	if accessToken == "" {
-		fmt.Println(`GitHub's personal access token is needed as environment variable BGIST_GITHUB_ACCESS_TOKEN.`)
-		fmt.Println(`It can be obtained from https://github.com/settings/tokens. The require scope is "gist".`)
-		os.Exit(1)
-	}
-}
-
-func addFile(source string, destination billy.Filesystem) (string, error) {
-	filename := filepath.Base(source)
-
-	newFile, err := destination.Create(filename)
-	if err != nil {
-		return "", errors.Wrap(err, "create new file in gist fs")
-	}
-	defer newFile.Close()
-
-	sourceFile, err := os.Open(source)
-	if err != nil {
-		return "", errors.Wrap(err, "open new file")
-	}
-	defer sourceFile.Close()
-
-	_, err = io.Copy(newFile, sourceFile)
-	if err != nil {
-		return "", errors.Wrap(err, "copy the file to gist fs")
-	}
-
-	return filename, nil
 }
