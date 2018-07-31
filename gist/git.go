@@ -16,8 +16,22 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage/memory"
 )
 
-var cloneFn = func(s storage.Storer, f billy.Filesystem, o *git.CloneOptions) (repoer, error) {
-	return git.Clone(s, f, o)
+var cloneFn = func(s storage.Storer, f billy.Filesystem, gitURL string) (
+	repoer, *git.Worktree, error) {
+
+	r, err := git.Clone(s, f, &git.CloneOptions{
+		URL: gitURL,
+	})
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "when cloning a repo")
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "when creating worktree")
+	}
+
+	return r, w, nil
 }
 
 type repoer interface {
@@ -40,17 +54,20 @@ func NewGit(info Info, accessToken string) (*Git, error) {
 	f := memfs.New()
 	s := memory.NewStorage()
 
-	r, err := cloneFn(s, f, &git.CloneOptions{
-		URL: info.GitURL,
-	})
+	r, w, err := cloneFn(s, f, info.GitURL)
 	if err != nil {
-		return nil, errors.Wrap(err, "when cloning a repo")
+		return nil, err
 	}
 
 	return &Git{
+		info:        info,
+		accessToken: accessToken,
+
 		filesystem: f,
 		storage:    s,
-		repo:       r,
+
+		repo:     r,
+		worktree: w,
 	}, nil
 }
 
