@@ -3,7 +3,7 @@ jobs:
   build:
     working_directory: /go/src/github.com/shihanng/bgist
     docker:
-      image: circleci/golang:1.11
+      - image: circleci/golang:1.11
     steps:
       - checkout
       - run: go test ./...
